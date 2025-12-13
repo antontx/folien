@@ -1,6 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router"
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
 
 const decks = [
   {
@@ -8,7 +7,6 @@ const decks = [
     title: "Welcome to Atelier",
     description: "Introduction to building slides with React components",
     slides: 5,
-    tags: ["intro", "demo"],
   },
 ]
 
@@ -29,16 +27,11 @@ function DecksPage() {
                     <CardTitle>{deck.title}</CardTitle>
                     <CardDescription>{deck.description}</CardDescription>
                     <div className="flex gap-2 pt-2">
-                      {deck.tags.map((tag) => (
-                        <Badge key={tag} variant="secondary">
-                          {tag}
-                        </Badge>
-                      ))}
+                      <span className="text-sm text-muted-foreground font-mono">
+                        {deck.slides} slides
+                      </span>
                     </div>
                   </div>
-                  <span className="text-sm text-muted-foreground font-mono">
-                    {deck.slides} slides
-                  </span>
                 </CardHeader>
               </Card>
             </Link>
