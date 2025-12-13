@@ -1,5 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router"
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { HugeiconsIcon } from "@hugeicons/react"
+import { Github01Icon } from "@hugeicons/core-free-icons"
 
 const decks = [
   {
@@ -16,11 +18,22 @@ function DecksPage() {
   return (
     <div className="min-h-screen bg-card p-8">
       <div className="max-w-4xl mx-auto">
-        <Link to="/" className="inline-block mb-2">
-          <h1 className="text-2xl font-serif tracking-tight text-foreground hover:text-foreground/80 transition-colors" style={{ fontFamily: "'Playfair Display', serif" }}>
-            atelier
-          </h1>
-        </Link>
+        <div className="flex items-center gap-2 mb-2">
+          <Link to="/" className="inline-block">
+            <h1 className="text-2xl font-serif tracking-tight text-foreground hover:text-foreground/80 transition-colors" style={{ fontFamily: "'Playfair Display', serif" }}>
+              atelier
+            </h1>
+          </Link>
+          <a
+            href="https://github.com/antontx/atelier"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center text-muted-foreground hover:text-foreground transition-colors"
+            aria-label="GitHub repository"
+          >
+            <HugeiconsIcon icon={Github01Icon} className="w-5 h-5" />
+          </a>
+        </div>
         <p className="text-muted-foreground mb-8">Select a deck to present</p>
         <div className="grid gap-4">
           {decks.map((deck) => (
