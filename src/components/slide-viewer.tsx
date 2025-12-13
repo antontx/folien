@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react"
+import { Link } from "@tanstack/react-router"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { ButtonGroup } from "@/components/ui/button-group"
@@ -71,13 +72,22 @@ export function SlideViewer({ slides }: SlideViewerProps) {
 
   return (
     <div className="h-screen w-screen bg-card flex overflow-hidden p-4 gap-4">
-      <div ref={slideRef} className="shrink w-fit flex items-center justify-center">
-        <Card className={`${isFullscreen
-          ? "w-screen h-screen max-w-none rounded-none"
-          : "w-[1400px] max-w-[calc(100vw-320px-3rem)] aspect-video rounded-xl"
-        } ${showBorder ? "" : "ring-0"}`}>
-          {slide.content}
-        </Card>
+      <div className="flex flex-col shrink w-fit">
+        <div className="pb-2 relative group px-2 pt-2 -mx-2 -mt-2">
+          <Link to="/" className={`inline-block transition-opacity duration-200 ${showBorder ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
+            <h1 className="text-2xl font-serif tracking-tight text-foreground hover:text-foreground/80 transition-colors" style={{ fontFamily: "'Playfair Display', serif" }}>
+              atelier
+            </h1>
+          </Link>
+        </div>
+        <div ref={slideRef} className="flex items-center justify-center">
+          <Card className={`${isFullscreen
+            ? "w-screen h-screen max-w-none rounded-none"
+            : "w-[1400px] max-w-[calc(100vw-320px-3rem)] aspect-video rounded-xl"
+          } ${showBorder ? "" : "ring-0"}`}>
+            {slide.content}
+          </Card>
+        </div>
       </div>
       <Card className="flex-1 min-w-[320px] flex flex-col">
         <CardHeader className="flex-row items-center justify-between space-y-0 pb-2">
