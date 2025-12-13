@@ -16,7 +16,11 @@ function DecksPage() {
   return (
     <div className="min-h-screen bg-card p-8">
       <div className="max-w-4xl mx-auto">
-        <h1 className="text-4xl font-bold mb-2">Decks</h1>
+        <Link to="/" className="inline-block mb-2">
+          <h1 className="text-2xl font-serif tracking-tight text-foreground hover:text-foreground/80 transition-colors" style={{ fontFamily: "'Playfair Display', serif" }}>
+            atelier
+          </h1>
+        </Link>
         <p className="text-muted-foreground mb-8">Select a deck to present</p>
         <div className="grid gap-4">
           {decks.map((deck) => (
