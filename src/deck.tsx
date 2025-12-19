@@ -1,5 +1,6 @@
 import { SlideViewer } from "@/components/slide-viewer"
 import { Slide } from "@/components/slide"
+import { Step } from "@/components/step"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -67,6 +68,27 @@ Highlight the key technologies:
               <span className="text-4xl">🎨</span>
             </CardContent>
           </Card>
+        </div>
+      </Slide>
+
+      <Slide steps={2} notes={`## Steps Demo
+
+Press → to reveal each step progressively.
+Steps are great for:
+- Building up complex ideas
+- Animations and reveals
+- Controlling presentation pace`}>
+        <div className="h-full flex flex-col items-center justify-center p-16">
+          <h1 className="text-5xl font-bold mb-8">Progressive Reveal</h1>
+          <p className="text-xl text-muted-foreground mb-6">Press → to reveal steps</p>
+          <div className="flex flex-col gap-4 items-center">
+            <Step visibleAt={1}>
+              <Badge variant="secondary" className="text-lg px-4 py-2">Step 1: First item appears</Badge>
+            </Step>
+            <Step visibleAt={2}>
+              <Badge className="text-lg px-4 py-2">Step 2: Second item appears</Badge>
+            </Step>
+          </div>
         </div>
       </Slide>
 
