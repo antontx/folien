@@ -1,11 +1,20 @@
 import { Children, isValidElement, useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { Link } from "@tanstack/react-router"
-import { Card, CardContent, CardHeader } from "@/components/ui/card"
+import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { ButtonGroup } from "@/components/ui/button-group"
-import { Separator } from "@/components/ui/separator"
 import { Slide, type SlideProps } from "@/components/slide"
 import { StepContext } from "@/components/step"
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarHeader,
+  SidebarProvider,
+  SidebarTrigger,
+  SidebarSeparator,
+  useSidebar,
+} from "@/components/ui/sidebar"
 
 interface InternalSlide {
   content: React.ReactNode
@@ -18,6 +27,17 @@ interface SlideViewerProps {
 }
 
 export function SlideViewer({ children }: SlideViewerProps) {
+  return (
+    <SidebarProvider defaultOpen={true}>
+      <SlideViewerInner>{children}</SlideViewerInner>
+    </SidebarProvider>
+  )
+}
+
+function SlideViewerInner({ children }: SlideViewerProps) {
+  const { state } = useSidebar()
+  const isCollapsed = state === "collapsed"
+
   const slides = useMemo(() => {
     const result: InternalSlide[] = []
     Children.forEach(children, (child) => {
@@ -103,8 +123,8 @@ export function SlideViewer({ children }: SlideViewerProps) {
   const isAtEnd = currentIndex === slides.length - 1 && currentStep === totalSteps
 
   return (
-    <div className="h-screen w-screen bg-card flex overflow-hidden p-4 gap-4">
-      <div className="flex flex-col shrink w-fit">
+    <>
+      <main className="flex-1 flex flex-col p-4 overflow-hidden">
         <div className="pb-2 relative group px-2 pt-2 -mx-2 -mt-2">
           <Link to="/" className={`inline-block transition-opacity duration-200 ${showBorder ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
             <h1 className="text-2xl font-serif tracking-tight text-foreground hover:text-foreground/80 transition-colors" style={{ fontFamily: "'Playfair Display', serif" }}>
@@ -112,67 +132,74 @@ export function SlideViewer({ children }: SlideViewerProps) {
             </h1>
           </Link>
         </div>
-        <div ref={slideRef} className="flex items-center justify-center">
+        <div ref={slideRef} className="flex-1 flex items-center justify-center">
           <Card className={`${isFullscreen
             ? "w-screen h-screen max-w-none rounded-none"
-            : "w-[1400px] max-w-[calc(100vw-320px-3rem)] aspect-video rounded-xl"
+            : "w-[1400px] max-w-full aspect-video rounded-xl"
           } ${showBorder ? "" : "ring-0"}`}>
             <StepContext.Provider value={{ currentStep, totalSteps }}>
               {slide?.content}
             </StepContext.Provider>
           </Card>
         </div>
-      </div>
-      <Card className="flex-1 min-w-[320px] flex flex-col">
-        <CardHeader className="flex-row items-center justify-between space-y-0 pb-2">
-          <ButtonGroup>
-            <ButtonGroup>
+      </main>
+
+      <Sidebar side="right" collapsible="icon" className="border-l">
+        <SidebarHeader className={`${isCollapsed ? "flex-col" : "flex-row"} items-center gap-2`}>
+          <SidebarTrigger />
+          <ButtonGroup orientation={isCollapsed ? "vertical" : "horizontal"}>
+            <Button variant="outline" size={isCollapsed ? "icon-sm" : "sm"} onClick={toggleFullscreen}>
+              ⛶
+            </Button>
+            <Button
+              variant={showBorder ? "outline" : "secondary"}
+              size={isCollapsed ? "icon-sm" : "sm"}
+              onClick={() => setShowBorder((v) => !v)}
+            >
+              ▢
+            </Button>
+          </ButtonGroup>
+        </SidebarHeader>
+
+        <SidebarSeparator />
+
+        <SidebarContent className="p-4">
+          {!isCollapsed && (
+            <pre className="whitespace-pre-wrap text-sm font-sans text-muted-foreground">
+              {slide?.notes || "No notes for this slide"}
+            </pre>
+          )}
+        </SidebarContent>
+
+        <SidebarSeparator />
+
+        <SidebarFooter>
+          <div className={`flex items-center gap-2 ${isCollapsed ? "flex-col" : "flex-row"}`}>
+            <ButtonGroup orientation={isCollapsed ? "vertical" : "horizontal"}>
               <Button
                 variant="outline"
-                size="sm"
-                onClick={toggleFullscreen}
-              >
-                ⛶
-              </Button>
-              <Button
-                variant={showBorder ? "outline" : "secondary"}
-                size="sm"
-                onClick={() => setShowBorder((v) => !v)}
-              >
-                ▢
-              </Button>
-            </ButtonGroup>
-            <ButtonGroup>
-              <Button
-                variant="outline"
-                size="sm"
+                size={isCollapsed ? "icon-sm" : "sm"}
                 onClick={goPrev}
                 disabled={isAtStart}
               >
-                ←
+                {isCollapsed ? "↑" : "←"}
               </Button>
               <Button
                 variant="outline"
-                size="sm"
+                size={isCollapsed ? "icon-sm" : "sm"}
                 onClick={goNext}
                 disabled={isAtEnd}
               >
-                →
+                {isCollapsed ? "↓" : "→"}
               </Button>
             </ButtonGroup>
-            <span className="text-xs text-muted-foreground font-mono flex items-center px-2">
-              {currentIndex + 1} / {slides.length}
-              {totalSteps > 0 && ` · ${currentStep}/${totalSteps}`}
+            <span className={`text-xs text-muted-foreground font-mono ${isCollapsed ? "[writing-mode:vertical-rl]" : ""}`}>
+              {currentIndex + 1}/{slides.length}
+              {!isCollapsed && totalSteps > 0 && ` · ${currentStep}/${totalSteps}`}
             </span>
-          </ButtonGroup>
-        </CardHeader>
-        <Separator />
-        <CardContent className="flex-1 overflow-auto py-4">
-          <pre className="whitespace-pre-wrap text-sm font-sans text-muted-foreground">
-            {slide?.notes || "No notes for this slide"}
-          </pre>
-        </CardContent>
-      </Card>
-    </div>
+          </div>
+        </SidebarFooter>
+      </Sidebar>
+    </>
   )
 }
