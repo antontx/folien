@@ -1,5 +1,4 @@
 import { Children, isValidElement, useCallback, useEffect, useMemo, useRef, useState } from "react"
-import { Link } from "@tanstack/react-router"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { ButtonGroup } from "@/components/ui/button-group"
@@ -147,13 +146,6 @@ function SlideViewerInner({ children }: SlideViewerProps) {
   return (
     <>
       <main className="flex-1 flex flex-col p-4 overflow-hidden">
-        <div className="pb-2 relative group px-2 pt-2 -mx-2 -mt-2">
-          <Link to="/" className={`inline-block transition-opacity duration-200 ${showBorder ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
-            <h1 className="text-2xl font-serif tracking-tight text-foreground hover:text-foreground/80 transition-colors" style={{ fontFamily: "'Playfair Display', serif" }}>
-              atelier
-            </h1>
-          </Link>
-        </div>
         <div ref={slideRef} className="flex-1 flex items-center justify-center">
           <Card className={`${isFullscreen
             ? "w-screen h-screen max-w-none rounded-none"
