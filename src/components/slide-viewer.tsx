@@ -5,10 +5,12 @@ import { Button } from "@/components/ui/button"
 import { ButtonGroup } from "@/components/ui/button-group"
 import { Separator } from "@/components/ui/separator"
 import { Slide, type SlideProps } from "@/components/slide"
+import { StepContext } from "@/components/step"
 
 interface InternalSlide {
   content: React.ReactNode
   notes?: string
+  steps: number
 }
 
 interface SlideViewerProps {
@@ -23,6 +25,7 @@ export function SlideViewer({ children }: SlideViewerProps) {
         result.push({
           content: child.props.children,
           notes: child.props.notes,
+          steps: child.props.steps ?? 0,
         })
       }
     })
@@ -30,16 +33,31 @@ export function SlideViewer({ children }: SlideViewerProps) {
   }, [children])
 
   const [currentIndex, setCurrentIndex] = useState(0)
+  const [currentStep, setCurrentStep] = useState(0)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [showBorder, setShowBorder] = useState(true)
 
+  const slide = slides[currentIndex]
+  const totalSteps = slide?.steps ?? 0
+
   const goNext = useCallback(() => {
-    setCurrentIndex((i) => Math.min(i + 1, slides.length - 1))
-  }, [slides.length])
+    if (currentStep < totalSteps) {
+      setCurrentStep((s) => s + 1)
+    } else if (currentIndex < slides.length - 1) {
+      setCurrentIndex((i) => i + 1)
+      setCurrentStep(0)
+    }
+  }, [currentStep, totalSteps, currentIndex, slides.length])
 
   const goPrev = useCallback(() => {
-    setCurrentIndex((i) => Math.max(i - 1, 0))
-  }, [])
+    if (currentStep > 0) {
+      setCurrentStep((s) => s - 1)
+    } else if (currentIndex > 0) {
+      const prevSlide = slides[currentIndex - 1]
+      setCurrentIndex((i) => i - 1)
+      setCurrentStep(prevSlide?.steps ?? 0)
+    }
+  }, [currentStep, currentIndex, slides])
 
   const slideRef = useRef<HTMLDivElement>(null)
 
@@ -81,7 +99,8 @@ export function SlideViewer({ children }: SlideViewerProps) {
     return () => window.removeEventListener("keydown", handleKeyDown)
   }, [goNext, goPrev, isFullscreen])
 
-  const slide = slides[currentIndex]
+  const isAtStart = currentIndex === 0 && currentStep === 0
+  const isAtEnd = currentIndex === slides.length - 1 && currentStep === totalSteps
 
   return (
     <div className="h-screen w-screen bg-card flex overflow-hidden p-4 gap-4">
@@ -98,7 +117,9 @@ export function SlideViewer({ children }: SlideViewerProps) {
             ? "w-screen h-screen max-w-none rounded-none"
             : "w-[1400px] max-w-[calc(100vw-320px-3rem)] aspect-video rounded-xl"
           } ${showBorder ? "" : "ring-0"}`}>
-            {slide?.content}
+            <StepContext.Provider value={{ currentStep, totalSteps }}>
+              {slide?.content}
+            </StepContext.Provider>
           </Card>
         </div>
       </div>
@@ -126,7 +147,7 @@ export function SlideViewer({ children }: SlideViewerProps) {
                 variant="outline"
                 size="sm"
                 onClick={goPrev}
-                disabled={currentIndex === 0}
+                disabled={isAtStart}
               >
                 ←
               </Button>
@@ -134,13 +155,14 @@ export function SlideViewer({ children }: SlideViewerProps) {
                 variant="outline"
                 size="sm"
                 onClick={goNext}
-                disabled={currentIndex === slides.length - 1}
+                disabled={isAtEnd}
               >
                 →
               </Button>
             </ButtonGroup>
             <span className="text-xs text-muted-foreground font-mono flex items-center px-2">
               {currentIndex + 1} / {slides.length}
+              {totalSteps > 0 && ` · ${currentStep}/${totalSteps}`}
             </span>
           </ButtonGroup>
         </CardHeader>
