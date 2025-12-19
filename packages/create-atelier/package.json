@@ -1,0 +1,24 @@
+{
+  "name": "create-atelier",
+  "version": "0.0.1",
+  "description": "Create a new Atelier slide deck",
+  "type": "module",
+  "bin": {
+    "create-atelier": "./dist/index.js"
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsup src/index.ts --format esm --dts",
+    "dev": "tsup src/index.ts --format esm --watch"
+  },
+  "dependencies": {
+    "degit": "^2.8.4",
+    "picocolors": "^1.1.1"
+  },
+  "devDependencies": {
+    "@types/degit": "^2.8.6",
+    "@types/node": "^22.10.2",
+    "tsup": "^8.3.5",
+    "typescript": "^5.7.2"
+  }
+}
