@@ -27,6 +27,7 @@ import {
   SidebarSeparator,
   useSidebar,
 } from '@/components/ui/sidebar'
+import { ThemeSwitcher } from '@/components/ui/theme-switcher'
 
 interface InternalSlide {
   content: React.ReactNode
@@ -223,6 +224,7 @@ function SlideViewerInner({ children }: SlideViewerProps) {
               ▢
             </Button>
           </ButtonGroup>
+          <ThemeSwitcher />
         </SidebarHeader>
 
         <SidebarSeparator />
