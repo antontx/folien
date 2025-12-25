@@ -2,17 +2,39 @@ import * as React from "react"
 import { cn } from "@/lib/utils"
 
 interface StepContextValue {
-  currentStep: number
+  step: number
   totalSteps: number
+  goNext: () => void
+  goPrev: () => void
+  setTotalSteps: (n: number) => void
 }
 
 export const StepContext = React.createContext<StepContextValue>({
-  currentStep: 0,
+  step: 0,
   totalSteps: 0,
+  goNext: () => {},
+  goPrev: () => {},
+  setTotalSteps: () => {},
 })
 
+export function useSteps(totalSteps: number) {
+  const ctx = React.useContext(StepContext)
+
+  React.useEffect(() => {
+    ctx.setTotalSteps(totalSteps)
+  }, [totalSteps, ctx.setTotalSteps])
+
+  return {
+    step: ctx.step,
+    goNext: ctx.goNext,
+    goPrev: ctx.goPrev,
+  }
+}
+
+/** @deprecated Use useSteps instead */
 export function useStep() {
-  return React.useContext(StepContext)
+  const ctx = React.useContext(StepContext)
+  return { currentStep: ctx.step, totalSteps: ctx.totalSteps }
 }
 
 interface StepProps {
@@ -22,8 +44,8 @@ interface StepProps {
 }
 
 export function Step({ children, visibleAt, className }: StepProps) {
-  const { currentStep } = useStep()
-  const isVisible = currentStep >= visibleAt
+  const { step } = React.useContext(StepContext)
+  const isVisible = step >= visibleAt
 
   return (
     <div

@@ -3,7 +3,6 @@ import * as React from "react"
 export interface SlideProps {
   children: React.ReactNode
   notes?: string
-  steps?: number
 }
 
 export function Slide({ children }: SlideProps) {

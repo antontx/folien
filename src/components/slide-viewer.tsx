@@ -1,9 +1,17 @@
-import { Children, isValidElement, useCallback, useEffect, useMemo, useRef, useState } from "react"
-import { Card } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { ButtonGroup } from "@/components/ui/button-group"
-import { Slide, type SlideProps } from "@/components/slide"
-import { StepContext } from "@/components/step"
+import {
+  Children,
+  isValidElement,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react'
+import { Card } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { ButtonGroup } from '@/components/ui/button-group'
+import { Slide, type SlideProps } from '@/components/slide'
+import { StepContext } from '@/components/step'
 import {
   Sidebar,
   SidebarContent,
@@ -13,12 +21,11 @@ import {
   SidebarTrigger,
   SidebarSeparator,
   useSidebar,
-} from "@/components/ui/sidebar"
+} from '@/components/ui/sidebar'
 
 interface InternalSlide {
   content: React.ReactNode
   notes?: string
-  steps: number
 }
 
 interface SlideViewerProps {
@@ -35,17 +42,30 @@ export function SlideViewer({ children }: SlideViewerProps) {
 
 function SlideViewerInner({ children }: SlideViewerProps) {
   const { state } = useSidebar()
-  const isCollapsed = state === "collapsed"
+  const isCollapsed = state === 'collapsed'
 
   const slides = useMemo(() => {
     const result: InternalSlide[] = []
     Children.forEach(children, (child) => {
-      if (isValidElement<SlideProps>(child) && child.type === Slide) {
-        result.push({
-          content: child.props.children,
-          notes: child.props.notes,
-          steps: child.props.steps ?? 0,
-        })
+      if (isValidElement<SlideProps>(child)) {
+        // Direct Slide component
+        if (child.type === Slide) {
+          result.push({
+            content: child.props.children,
+            notes: child.props.notes,
+          })
+        } else if (typeof child.type === 'function') {
+          // Component that returns a Slide
+          const rendered = (
+            child.type as (props: SlideProps) => React.ReactElement
+          )(child.props)
+          if (isValidElement<SlideProps>(rendered) && rendered.type === Slide) {
+            result.push({
+              content: rendered.props.children,
+              notes: rendered.props.notes,
+            })
+          }
+        }
       }
     })
     return result
@@ -53,11 +73,17 @@ function SlideViewerInner({ children }: SlideViewerProps) {
 
   const [currentIndex, setCurrentIndex] = useState(0)
   const [currentStep, setCurrentStep] = useState(0)
+  const [totalSteps, setTotalSteps] = useState(0)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [showBorder, setShowBorder] = useState(true)
 
   const slide = slides[currentIndex]
-  const totalSteps = slide?.steps ?? 0
+
+  // Reset steps when slide changes
+  useEffect(() => {
+    setCurrentStep(0)
+    setTotalSteps(0)
+  }, [currentIndex])
 
   // Step-aware navigation (→/←): advance through steps then slides
   const goNextStep = useCallback(() => {
@@ -73,11 +99,10 @@ function SlideViewerInner({ children }: SlideViewerProps) {
     if (currentStep > 0) {
       setCurrentStep((s) => s - 1)
     } else if (currentIndex > 0) {
-      const prevSlide = slides[currentIndex - 1]
       setCurrentIndex((i) => i - 1)
-      setCurrentStep(prevSlide?.steps ?? 0)
+      // Step 0 - slide will set its totalSteps on mount
     }
-  }, [currentStep, currentIndex, slides])
+  }, [currentStep, currentIndex])
 
   // Direct slide navigation (↓/↑): jump to next/prev slide directly
   const goNextSlide = useCallback(() => {
@@ -110,48 +135,61 @@ function SlideViewerInner({ children }: SlideViewerProps) {
     const handleFullscreenChange = () => {
       setIsFullscreen(!!document.fullscreenElement)
     }
-    document.addEventListener("fullscreenchange", handleFullscreenChange)
-    return () => document.removeEventListener("fullscreenchange", handleFullscreenChange)
+    document.addEventListener('fullscreenchange', handleFullscreenChange)
+    return () =>
+      document.removeEventListener('fullscreenchange', handleFullscreenChange)
   }, [])
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement
-      if (target.tagName === "INPUT" || target.tagName === "TEXTAREA") return
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return
 
-      if (e.key === "ArrowRight") {
+      if (e.key === 'ArrowRight') {
         e.preventDefault()
         goNextStep()
-      } else if (e.key === "ArrowLeft") {
+      } else if (e.key === 'ArrowLeft') {
         e.preventDefault()
         goPrevStep()
-      } else if (e.key === "ArrowDown") {
+      } else if (e.key === 'ArrowDown') {
         e.preventDefault()
         goNextSlide()
-      } else if (e.key === "ArrowUp") {
+      } else if (e.key === 'ArrowUp') {
         e.preventDefault()
         goPrevSlide()
-      } else if (e.key === "Escape" && isFullscreen) {
+      } else if (e.key === 'Escape' && isFullscreen) {
         document.exitFullscreen()
       }
     }
 
-    window.addEventListener("keydown", handleKeyDown)
-    return () => window.removeEventListener("keydown", handleKeyDown)
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
   }, [goNextStep, goPrevStep, goNextSlide, goPrevSlide, isFullscreen])
 
   const isAtStart = currentIndex === 0 && currentStep === 0
-  const isAtEnd = currentIndex === slides.length - 1 && currentStep === totalSteps
+  const isAtEnd =
+    currentIndex === slides.length - 1 && currentStep === totalSteps
 
   return (
     <>
       <main className="flex-1 flex flex-col p-4 overflow-hidden">
         <div ref={slideRef} className="flex-1 flex items-center justify-center">
-          <Card className={`${isFullscreen
-            ? "w-screen h-screen max-w-none rounded-none"
-            : "w-[1400px] max-w-full aspect-video rounded-xl"
-          } ${showBorder ? "" : "ring-0"}`}>
-            <StepContext.Provider value={{ currentStep, totalSteps }}>
+          <Card
+            className={`${
+              isFullscreen
+                ? 'w-screen h-screen max-w-none rounded-none'
+                : 'w-[1400px] max-w-full aspect-video rounded-xl'
+            } ${showBorder ? '' : 'ring-0'}`}
+          >
+            <StepContext.Provider
+              value={{
+                step: currentStep,
+                totalSteps,
+                goNext: goNextStep,
+                goPrev: goPrevStep,
+                setTotalSteps,
+              }}
+            >
               {slide?.content}
             </StepContext.Provider>
           </Card>
@@ -159,15 +197,21 @@ function SlideViewerInner({ children }: SlideViewerProps) {
       </main>
 
       <Sidebar side="right" collapsible="icon" className="border-l">
-        <SidebarHeader className={`${isCollapsed ? "flex-col" : "flex-row"} items-center gap-2`}>
+        <SidebarHeader
+          className={`${isCollapsed ? 'flex-col' : 'flex-row'} items-center gap-2`}
+        >
           <SidebarTrigger />
-          <ButtonGroup orientation={isCollapsed ? "vertical" : "horizontal"}>
-            <Button variant="outline" size={isCollapsed ? "icon-sm" : "sm"} onClick={toggleFullscreen}>
+          <ButtonGroup orientation={isCollapsed ? 'vertical' : 'horizontal'}>
+            <Button
+              variant="outline"
+              size={isCollapsed ? 'icon-sm' : 'sm'}
+              onClick={toggleFullscreen}
+            >
               ⛶
             </Button>
             <Button
-              variant={showBorder ? "outline" : "secondary"}
-              size={isCollapsed ? "icon-sm" : "sm"}
+              variant={showBorder ? 'outline' : 'secondary'}
+              size={isCollapsed ? 'icon-sm' : 'sm'}
               onClick={() => setShowBorder((v) => !v)}
             >
               ▢
@@ -180,7 +224,7 @@ function SlideViewerInner({ children }: SlideViewerProps) {
         <SidebarContent className="p-4">
           {!isCollapsed && (
             <pre className="whitespace-pre-wrap text-sm font-sans text-muted-foreground">
-              {slide?.notes || "No notes for this slide"}
+              {slide?.notes || 'No notes for this slide'}
             </pre>
           )}
         </SidebarContent>
@@ -188,28 +232,34 @@ function SlideViewerInner({ children }: SlideViewerProps) {
         <SidebarSeparator />
 
         <SidebarFooter>
-          <div className={`flex items-center gap-2 ${isCollapsed ? "flex-col" : "flex-row"}`}>
-            <ButtonGroup orientation={isCollapsed ? "vertical" : "horizontal"}>
+          <div
+            className={`flex items-center gap-2 ${isCollapsed ? 'flex-col' : 'flex-row'}`}
+          >
+            <ButtonGroup orientation={isCollapsed ? 'vertical' : 'horizontal'}>
               <Button
                 variant="outline"
-                size={isCollapsed ? "icon-sm" : "sm"}
+                size={isCollapsed ? 'icon-sm' : 'sm'}
                 onClick={goPrevStep}
                 disabled={isAtStart}
               >
-                {isCollapsed ? "↑" : "←"}
+                {isCollapsed ? '↑' : '←'}
               </Button>
               <Button
                 variant="outline"
-                size={isCollapsed ? "icon-sm" : "sm"}
+                size={isCollapsed ? 'icon-sm' : 'sm'}
                 onClick={goNextStep}
                 disabled={isAtEnd}
               >
-                {isCollapsed ? "↓" : "→"}
+                {isCollapsed ? '↓' : '→'}
               </Button>
             </ButtonGroup>
-            <span className={`text-xs text-muted-foreground font-mono ${isCollapsed ? "[writing-mode:vertical-rl]" : ""}`}>
+            <span
+              className={`text-xs text-muted-foreground font-mono ${isCollapsed ? '[writing-mode:vertical-rl]' : ''}`}
+            >
               {currentIndex + 1}/{slides.length}
-              {!isCollapsed && totalSteps > 0 && ` · ${currentStep}/${totalSteps}`}
+              {!isCollapsed &&
+                totalSteps > 0 &&
+                ` · ${currentStep}/${totalSteps}`}
             </span>
           </div>
         </SidebarFooter>
