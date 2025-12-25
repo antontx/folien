@@ -7,14 +7,14 @@ import {
   useRef,
   useState,
 } from 'react'
+import type { SlideProps } from '@/components/slides/slide'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { ButtonGroup } from '@/components/ui/button-group'
 import {
   Slide,
-  type SlideProps,
-  getSlideNotes,
   getSlideContent,
+  getSlideNotes,
 } from '@/components/slides/slide'
 import { StepContext } from '@/components/slides/step'
 import {
@@ -23,8 +23,8 @@ import {
   SidebarFooter,
   SidebarHeader,
   SidebarProvider,
-  SidebarTrigger,
   SidebarSeparator,
+  SidebarTrigger,
   useSidebar,
 } from '@/components/ui/sidebar'
 import { ThemeSwitcher } from '@/components/ui/theme-switcher'
@@ -58,7 +58,7 @@ function SlideViewerInner({ children }: SlideViewerProps) {
   const isCollapsed = state === 'collapsed'
 
   const slides = useMemo(() => {
-    const result: InternalSlide[] = []
+    const result: Array<InternalSlide> = []
     Children.forEach(children, (child) => {
       if (isValidElement<SlideProps>(child)) {
         // Direct Slide component
@@ -197,7 +197,7 @@ function SlideViewerInner({ children }: SlideViewerProps) {
                 setTotalSteps,
               }}
             >
-              {slide?.content}
+              {slide.content}
             </StepContext.Provider>
           </Card>
         </div>
@@ -232,7 +232,7 @@ function SlideViewerInner({ children }: SlideViewerProps) {
         <SidebarContent className="p-4 overflow-auto">
           {!isCollapsed && (
             <div className="slide-notes text-sm text-muted-foreground">
-              {slide?.notes || <p>No notes for this slide</p>}
+              {slide.notes || <p>No notes for this slide</p>}
             </div>
           )}
         </SidebarContent>

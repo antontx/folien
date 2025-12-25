@@ -1,4 +1,4 @@
-import * as React from "react"
+import * as React from 'react'
 
 // SlideNotes - for speaker notes (JSX)
 export interface SlideNotesProps {
@@ -27,7 +27,10 @@ export function Slide({ children }: SlideProps) {
   let content: React.ReactNode = null
 
   React.Children.forEach(children, (child) => {
-    if (React.isValidElement<SlideContentProps>(child) && child.type === SlideContent) {
+    if (
+      React.isValidElement<SlideContentProps>(child) &&
+      child.type === SlideContent
+    ) {
       content = child.props.children
     }
   })
@@ -40,7 +43,10 @@ export function getSlideNotes(children: React.ReactNode): React.ReactNode {
   let notes: React.ReactNode = null
 
   React.Children.forEach(children, (child) => {
-    if (React.isValidElement<SlideNotesProps>(child) && child.type === SlideNotes) {
+    if (
+      React.isValidElement<SlideNotesProps>(child) &&
+      child.type === SlideNotes
+    ) {
       notes = child.props.children
     }
   })
@@ -53,7 +59,10 @@ export function getSlideContent(children: React.ReactNode): React.ReactNode {
   let content: React.ReactNode = null
 
   React.Children.forEach(children, (child) => {
-    if (React.isValidElement<SlideContentProps>(child) && child.type === SlideContent) {
+    if (
+      React.isValidElement<SlideContentProps>(child) &&
+      child.type === SlideContent
+    ) {
       content = child.props.children
     }
   })
@@ -62,7 +71,7 @@ export function getSlideContent(children: React.ReactNode): React.ReactNode {
 }
 
 export function isSlideElement(
-  element: React.ReactNode
+  element: React.ReactNode,
 ): element is React.ReactElement<SlideProps> {
   return React.isValidElement(element) && element.type === Slide
 }
