@@ -10,7 +10,12 @@ import {
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { ButtonGroup } from '@/components/ui/button-group'
-import { Slide, type SlideProps } from '@/components/slides/slide'
+import {
+  Slide,
+  type SlideProps,
+  getSlideNotes,
+  getSlideContent,
+} from '@/components/slides/slide'
 import { StepContext } from '@/components/slides/step'
 import {
   Sidebar,
@@ -25,7 +30,7 @@ import {
 
 interface InternalSlide {
   content: React.ReactNode
-  notes?: string
+  notes?: React.ReactNode
 }
 
 interface SlideViewerProps {
@@ -40,6 +45,13 @@ export function SlideViewer({ children }: SlideViewerProps) {
   )
 }
 
+function extractSlideData(slideChildren: React.ReactNode): InternalSlide {
+  return {
+    content: getSlideContent(slideChildren),
+    notes: getSlideNotes(slideChildren),
+  }
+}
+
 function SlideViewerInner({ children }: SlideViewerProps) {
   const { state } = useSidebar()
   const isCollapsed = state === 'collapsed'
@@ -50,20 +62,14 @@ function SlideViewerInner({ children }: SlideViewerProps) {
       if (isValidElement<SlideProps>(child)) {
         // Direct Slide component
         if (child.type === Slide) {
-          result.push({
-            content: child.props.children,
-            notes: child.props.notes,
-          })
+          result.push(extractSlideData(child.props.children))
         } else if (typeof child.type === 'function') {
           // Component that returns a Slide
           const rendered = (
             child.type as (props: SlideProps) => React.ReactElement
           )(child.props)
           if (isValidElement<SlideProps>(rendered) && rendered.type === Slide) {
-            result.push({
-              content: rendered.props.children,
-              notes: rendered.props.notes,
-            })
+            result.push(extractSlideData(rendered.props.children))
           }
         }
       }
@@ -221,11 +227,11 @@ function SlideViewerInner({ children }: SlideViewerProps) {
 
         <SidebarSeparator />
 
-        <SidebarContent className="p-4">
+        <SidebarContent className="p-4 overflow-auto">
           {!isCollapsed && (
-            <pre className="whitespace-pre-wrap text-sm font-sans text-muted-foreground">
-              {slide?.notes || 'No notes for this slide'}
-            </pre>
+            <div className="slide-notes text-sm text-muted-foreground">
+              {slide?.notes || <p>No notes for this slide</p>}
+            </div>
           )}
         </SidebarContent>
 
