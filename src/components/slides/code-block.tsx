@@ -1,7 +1,8 @@
 import * as React from 'react'
-import { useSteps } from '@/components/slides/step'
-import { createHighlighter, type HighlighterCore } from 'shiki'
+import { createHighlighter } from 'shiki'
 import { ShikiMagicMove } from 'shiki-magic-move/react'
+import type { HighlighterCore } from 'shiki'
+import { useSteps } from '@/components/slides/step'
 import 'shiki-magic-move/dist/style.css'
 
 export interface CodeStep {
@@ -9,19 +10,21 @@ export interface CodeStep {
 }
 
 interface CodeBlockProps {
-  steps: CodeStep[]
+  steps: Array<CodeStep>
   lang?: string
 }
 
 function useTheme() {
-  const [isDark, setIsDark] = React.useState(false)
+  const [isDark, setIsDark] = React.useState(
+    () =>
+      typeof document !== 'undefined' &&
+      document.documentElement.classList.contains('dark'),
+  )
 
   React.useEffect(() => {
     const checkTheme = () => {
       setIsDark(document.documentElement.classList.contains('dark'))
     }
-
-    checkTheme()
 
     // Watch for class changes on html element
     const observer = new MutationObserver(checkTheme)
@@ -71,6 +74,7 @@ export function CodeBlock({ steps, lang = 'typescript' }: CodeBlockProps) {
               font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
               max-width: 100%;
               max-height: 100%;
+              background: transparent !important;
             }
             .shiki-magic-move-container pre {
               padding: 1.25rem 1.5rem;
@@ -81,6 +85,7 @@ export function CodeBlock({ steps, lang = 'typescript' }: CodeBlockProps) {
         }}
       />
       <ShikiMagicMove
+        key={theme}
         highlighter={highlighter}
         code={currentCode}
         lang={lang}
