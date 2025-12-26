@@ -3,6 +3,7 @@ import { createHighlighter } from 'shiki'
 import { ShikiMagicMove } from 'shiki-magic-move/react'
 import type { HighlighterCore } from 'shiki'
 import { useSteps } from '@/components/slides/step'
+import { useAspectRatio } from '@/hooks/use-aspect-ratio'
 import 'shiki-magic-move/dist/style.css'
 
 export interface CodeStep {
@@ -45,6 +46,7 @@ export function CodeBlock({ steps, lang = 'typescript' }: CodeBlockProps) {
   const { step } = useSteps(steps.length - 1)
   const [highlighter, setHighlighter] = React.useState<HighlighterCore>()
   const isDark = useTheme()
+  const { isVertical } = useAspectRatio()
   const containerRef = React.useRef<HTMLDivElement>(null)
 
   React.useEffect(() => {
@@ -153,10 +155,12 @@ export function CodeBlock({ steps, lang = 'typescript' }: CodeBlockProps) {
         dangerouslySetInnerHTML={{
           __html: `
             .shiki-magic-move-container {
-              font-size: 0.8rem;
+              font-size: ${isVertical ? '0.65rem' : '0.8rem'};
               line-height: 1.4;
               font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
               background: transparent !important;
+              padding: 0.75rem;
+              ${isVertical ? 'white-space: pre-wrap; word-break: break-word;' : ''}
             }
             .shiki-magic-move-container pre {
               padding: 1.25rem 1.5rem;
