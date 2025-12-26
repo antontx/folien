@@ -1,22 +1,9 @@
-import {
-  Children,
-  isValidElement,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react'
-import type { SlideProps } from '@/components/slides/slide'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { ButtonGroup } from '@/components/ui/button-group'
-import {
-  Slide,
-  getSlideContent,
-  getSlideNotes,
-} from '@/components/slides/slide'
 import { StepContext } from '@/components/slides/step'
+import { useSlides } from '@/components/slides/slides-data'
 import {
   Sidebar,
   SidebarContent,
@@ -28,11 +15,10 @@ import {
   useSidebar,
 } from '@/components/ui/sidebar'
 import { ThemeSwitcher } from '@/components/ui/theme-switcher'
-
-interface InternalSlide {
-  content: React.ReactNode
-  notes?: React.ReactNode
-}
+import {
+  usePresenterChannel,
+  type PresenterMessage,
+} from '@/hooks/use-presenter-channel'
 
 interface SlideViewerProps {
   children: React.ReactNode
@@ -46,50 +32,112 @@ export function SlideViewer({ children }: SlideViewerProps) {
   )
 }
 
-function extractSlideData(slideChildren: React.ReactNode): InternalSlide {
-  return {
-    content: getSlideContent(slideChildren),
-    notes: getSlideNotes(slideChildren),
-  }
-}
-
 function SlideViewerInner({ children }: SlideViewerProps) {
   const { state } = useSidebar()
   const isCollapsed = state === 'collapsed'
 
-  const slides = useMemo(() => {
-    const result: Array<InternalSlide> = []
-    Children.forEach(children, (child) => {
-      if (isValidElement<SlideProps>(child)) {
-        // Direct Slide component
-        if (child.type === Slide) {
-          result.push(extractSlideData(child.props.children))
-        } else if (typeof child.type === 'function') {
-          // Component that returns a Slide
-          const rendered = (
-            child.type as (props: SlideProps) => React.ReactElement
-          )(child.props)
-          if (isValidElement<SlideProps>(rendered) && rendered.type === Slide) {
-            result.push(extractSlideData(rendered.props.children))
-          }
-        }
-      }
-    })
-    return result
-  }, [children])
+  const slides = useSlides(children)
 
   const [currentIndex, setCurrentIndex] = useState(0)
   const [currentStep, setCurrentStep] = useState(0)
   const [totalSteps, setTotalSteps] = useState(0)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [showBorder, setShowBorder] = useState(true)
+  const [isPoppedOut, setIsPoppedOut] = useState(false)
 
   const slide = slides[currentIndex]
+  const popupRef = useRef<Window | null>(null)
 
-  // Reset steps when slide changes
+  // Handle messages from presenter window
+  const handleMessage = useCallback(
+    (msg: PresenterMessage) => {
+      if (msg.type === 'navigate') {
+        switch (msg.action) {
+          case 'nextStep':
+            if (currentStep < totalSteps) {
+              setCurrentStep((s) => s + 1)
+            } else if (currentIndex < slides.length - 1) {
+              setCurrentIndex((i) => i + 1)
+              setCurrentStep(0)
+            }
+            break
+          case 'prevStep':
+            if (currentStep > 0) {
+              setCurrentStep((s) => s - 1)
+            } else if (currentIndex > 0) {
+              setCurrentIndex((i) => i - 1)
+            }
+            break
+          case 'nextSlide':
+            if (currentIndex < slides.length - 1) {
+              setCurrentIndex((i) => i + 1)
+              setCurrentStep(0)
+            }
+            break
+          case 'prevSlide':
+            if (currentIndex > 0) {
+              setCurrentIndex((i) => i - 1)
+              setCurrentStep(0)
+            }
+            break
+          case 'goTo':
+            if (
+              msg.index !== undefined &&
+              msg.index >= 0 &&
+              msg.index < slides.length
+            ) {
+              setCurrentIndex(msg.index)
+              setCurrentStep(0)
+            }
+            break
+        }
+      } else if (msg.type === 'control') {
+        if (msg.action === 'fullscreen') {
+          if (msg.value && !document.fullscreenElement) {
+            slideRef.current?.requestFullscreen()
+          } else if (!msg.value && document.fullscreenElement) {
+            document.exitFullscreen()
+          }
+        } else if (msg.action === 'border') {
+          setShowBorder(msg.value)
+        }
+      } else if (msg.type === 'connected') {
+        setIsPoppedOut(true)
+      } else if (msg.type === 'disconnected') {
+        setIsPoppedOut(false)
+        popupRef.current = null
+      }
+    },
+    [currentStep, totalSteps, currentIndex, slides.length],
+  )
+
+  const { send } = usePresenterChannel(handleMessage)
+
+  // Broadcast state changes to presenter window
+  useEffect(() => {
+    if (isPoppedOut) {
+      send({
+        type: 'state',
+        index: currentIndex,
+        step: currentStep,
+        totalSteps,
+        showBorder,
+        isFullscreen,
+      })
+    }
+  }, [
+    isPoppedOut,
+    currentIndex,
+    currentStep,
+    totalSteps,
+    showBorder,
+    isFullscreen,
+    send,
+  ])
+
+  // Reset current step when slide changes (totalSteps will be set by useSteps)
   useEffect(() => {
     setCurrentStep(0)
-    setTotalSteps(0)
   }, [currentIndex])
 
   // Step-aware navigation (→/←): advance through steps then slides
@@ -138,6 +186,10 @@ function SlideViewerInner({ children }: SlideViewerProps) {
     }
   }, [])
 
+  const toggleBorder = useCallback(() => {
+    setShowBorder((v) => !v)
+  }, [])
+
   useEffect(() => {
     const handleFullscreenChange = () => {
       setIsFullscreen(!!document.fullscreenElement)
@@ -145,6 +197,26 @@ function SlideViewerInner({ children }: SlideViewerProps) {
     document.addEventListener('fullscreenchange', handleFullscreenChange)
     return () =>
       document.removeEventListener('fullscreenchange', handleFullscreenChange)
+  }, [])
+
+  const popOut = useCallback(() => {
+    const popup = window.open(
+      '/presenter',
+      'atelier-presenter',
+      'width=400,height=600,resizable=yes',
+    )
+    if (popup) {
+      popupRef.current = popup
+      setIsPoppedOut(true)
+    }
+  }, [])
+
+  const popIn = useCallback(() => {
+    if (popupRef.current) {
+      popupRef.current.close()
+      popupRef.current = null
+    }
+    setIsPoppedOut(false)
   }, [])
 
   useEffect(() => {
@@ -164,14 +236,26 @@ function SlideViewerInner({ children }: SlideViewerProps) {
       } else if (e.key === 'ArrowUp') {
         e.preventDefault()
         goPrevSlide()
-      } else if (e.key === 'Escape' && isFullscreen) {
-        document.exitFullscreen()
+      } else if (e.key === 'Escape') {
+        if (isPoppedOut) {
+          popIn()
+        } else if (isFullscreen) {
+          document.exitFullscreen()
+        }
       }
     }
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [goNextStep, goPrevStep, goNextSlide, goPrevSlide, isFullscreen])
+  }, [
+    goNextStep,
+    goPrevStep,
+    goNextSlide,
+    goPrevSlide,
+    isFullscreen,
+    isPoppedOut,
+    popIn,
+  ])
 
   const isAtStart = currentIndex === 0 && currentStep === 0
   const isAtEnd =
@@ -197,81 +281,98 @@ function SlideViewerInner({ children }: SlideViewerProps) {
                 setTotalSteps,
               }}
             >
-              {slide.content}
+              <div className="flex-1 h-full w-full overflow-hidden">
+                {slide.content}
+              </div>
             </StepContext.Provider>
           </Card>
         </div>
       </main>
 
-      <Sidebar side="right" collapsible="icon" className="border-l">
-        <SidebarHeader
-          className={`${isCollapsed ? 'flex-col' : 'flex-row'} items-center gap-2`}
-        >
-          <SidebarTrigger />
-          <ButtonGroup orientation={isCollapsed ? 'vertical' : 'horizontal'}>
-            <Button
-              variant="outline"
-              size={isCollapsed ? 'icon-sm' : 'sm'}
-              onClick={toggleFullscreen}
-            >
-              ⛶
-            </Button>
-            <Button
-              variant={showBorder ? 'outline' : 'secondary'}
-              size={isCollapsed ? 'icon-sm' : 'sm'}
-              onClick={() => setShowBorder((v) => !v)}
-            >
-              ▢
-            </Button>
-          </ButtonGroup>
-          <ThemeSwitcher />
-        </SidebarHeader>
-
-        <SidebarSeparator />
-
-        <SidebarContent className="p-4 overflow-auto">
-          {!isCollapsed && (
-            <div className="slide-notes text-sm text-muted-foreground">
-              {slide.notes || <p>No notes for this slide</p>}
-            </div>
-          )}
-        </SidebarContent>
-
-        <SidebarSeparator />
-
-        <SidebarFooter>
-          <div
-            className={`flex items-center gap-2 ${isCollapsed ? 'flex-col' : 'flex-row'}`}
+      {/* Only show sidebar when not popped out */}
+      {!isPoppedOut && (
+        <Sidebar side="right" collapsible="icon" className="border-l">
+          <SidebarHeader
+            className={`${isCollapsed ? 'flex-col' : 'flex-row'} items-center gap-2`}
           >
+            <SidebarTrigger />
             <ButtonGroup orientation={isCollapsed ? 'vertical' : 'horizontal'}>
               <Button
                 variant="outline"
                 size={isCollapsed ? 'icon-sm' : 'sm'}
-                onClick={goPrevStep}
-                disabled={isAtStart}
+                onClick={toggleFullscreen}
               >
-                {isCollapsed ? '↑' : '←'}
+                ⛶
               </Button>
               <Button
-                variant="outline"
+                variant={showBorder ? 'outline' : 'secondary'}
                 size={isCollapsed ? 'icon-sm' : 'sm'}
-                onClick={goNextStep}
-                disabled={isAtEnd}
+                onClick={toggleBorder}
               >
-                {isCollapsed ? '↓' : '→'}
+                ▢
               </Button>
             </ButtonGroup>
-            <span
-              className={`text-xs text-muted-foreground font-mono ${isCollapsed ? '[writing-mode:vertical-rl]' : ''}`}
+            <ThemeSwitcher />
+            {!isCollapsed && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={popOut}
+                title="Pop out to separate window"
+              >
+                ⧉
+              </Button>
+            )}
+          </SidebarHeader>
+
+          <SidebarSeparator />
+
+          <SidebarContent className="p-4 overflow-auto">
+            {!isCollapsed && (
+              <div className="slide-notes text-sm text-muted-foreground">
+                {slide.notes || <p>No notes for this slide</p>}
+              </div>
+            )}
+          </SidebarContent>
+
+          <SidebarSeparator />
+
+          <SidebarFooter>
+            <div
+              className={`flex items-center gap-2 ${isCollapsed ? 'flex-col' : 'flex-row'}`}
             >
-              {currentIndex + 1}/{slides.length}
-              {!isCollapsed &&
-                totalSteps > 0 &&
-                ` · ${currentStep}/${totalSteps}`}
-            </span>
-          </div>
-        </SidebarFooter>
-      </Sidebar>
+              <ButtonGroup
+                orientation={isCollapsed ? 'vertical' : 'horizontal'}
+              >
+                <Button
+                  variant="outline"
+                  size={isCollapsed ? 'icon-sm' : 'sm'}
+                  onClick={goPrevStep}
+                  disabled={isAtStart}
+                >
+                  {isCollapsed ? '↑' : '←'}
+                </Button>
+                <Button
+                  variant="outline"
+                  size={isCollapsed ? 'icon-sm' : 'sm'}
+                  onClick={goNextStep}
+                  disabled={isAtEnd}
+                >
+                  {isCollapsed ? '↓' : '→'}
+                </Button>
+              </ButtonGroup>
+              <span
+                className={`text-xs text-muted-foreground font-mono ${isCollapsed ? '[writing-mode:vertical-rl]' : ''}`}
+              >
+                {currentIndex + 1}/{slides.length}
+                {!isCollapsed &&
+                  totalSteps > 0 &&
+                  ` · ${currentStep}/${totalSteps}`}
+              </span>
+            </div>
+          </SidebarFooter>
+        </Sidebar>
+      )}
     </>
   )
 }

@@ -1,175 +1,169 @@
+import type {CodeStep} from '@/components/slides/code-block';
 import { SlideViewer } from '@/components/slides/slide-viewer'
 import { Slide, SlideContent, SlideNotes } from '@/components/slides/slide'
-import { Step, useSteps } from '@/components/slides/step'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
-import { Separator } from '@/components/ui/separator'
+import { CodeBlock  } from '@/components/slides/code-block'
 
-function SlideTest() {
+// Code steps designed for smooth token animation:
+// - Keep structure similar across steps where possible
+// - type State is always at top
+// - Function/usage comes after
+const codeSteps: Array<CodeStep> = [
+  // Step 0: The problem - bag of optionals
+  {
+    code: `type State = {
+  status: 'loading' | 'success' | 'error'
+  error?: string
+  data?: Record<string, unknown>
+}`,
+  },
+  // Step 1: Impossible states are possible
+  {
+    code: `type State = {
+  status: 'loading' | 'success' | 'error'
+  error?: string
+  data?: Record<string, unknown>
+}
+
+// TypeScript allows this - but it's nonsense!
+const badState: State = {
+  status: 'loading',
+  error: 'Oops!',   // ❌ shouldn't exist
+  data: { id: 1 },  // ❌ shouldn't exist
+}`,
+  },
+  // Step 2: Back to just the type
+  {
+    code: `type State = {
+  status: 'loading' | 'success' | 'error'
+  error?: string
+  data?: Record<string, unknown>
+}`,
+  },
+  // Step 3: The discriminated union solution
+  {
+    code: `type State =
+  | { status: 'loading' }
+  | { status: 'error'; error: string }
+  | { status: 'success'; data: Record<string, unknown> }`,
+  },
+  // Step 4: Type safety examples - invalid vs valid
+  {
+    code: `type State =
+  | { status: 'loading' }
+  | { status: 'error'; error: string }
+  | { status: 'success'; data: Record<string, unknown> }
+
+// ❌ Type error: 'error' does not exist on loading
+const invalid: State = {
+  status: 'loading',
+  error: 'Oops!',
+}
+
+// ✅ Compiles - each state has only its properties
+const loading: State = { status: 'loading' }
+const error: State = { status: 'error', error: 'Failed' }
+const success: State = { status: 'success', data: { id: 1 } }`,
+  },
+  // Step 5: Highlight invalid section
+  {
+    code: `type State =
+  | { status: 'loading' }
+  | { status: 'error'; error: string }
+  | { status: 'success'; data: Record<string, unknown> }
+
+// ❌ Type error: 'error' does not exist on loading
+const invalid: State = {
+  status: 'loading',
+  error: 'Oops!',
+}
+
+// ✅ Compiles - each state has only its properties
+const loading: State = { status: 'loading' }
+const error: State = { status: 'error', error: 'Failed' }
+const success: State = { status: 'success', data: { id: 1 } }`,
+    highlightedRanges: [[6, 10]],
+  },
+  // Step 6: Highlight valid section
+  {
+    code: `type State =
+  | { status: 'loading' }
+  | { status: 'error'; error: string }
+  | { status: 'success'; data: Record<string, unknown> }
+
+// ❌ Type error: 'error' does not exist on loading
+const invalid: State = {
+  status: 'loading',
+  error: 'Oops!',
+}
+
+// ✅ Compiles - each state has only its properties
+const loading: State = { status: 'loading' }
+const error: State = { status: 'error', error: 'Failed' }
+const success: State = { status: 'success', data: { id: 1 } }`,
+    highlightedRanges: [[12, 15]],
+  },
+]
+
+function DiscriminatedUnionsSlide() {
   return (
     <Slide>
       <SlideNotes>
-        <p>This is a test slide</p>
+        <div className="space-y-6">
+          <div>
+            <h3 className="font-bold text-lg">Step 0 - The Problem</h3>
+            <p>
+              Here's a common pattern for modeling async state - a type with
+              status and optional error/data properties. This is a "bag of
+              optionals" - properties that may or may not exist.
+            </p>
+          </div>
+          <div>
+            <h3 className="font-bold text-lg">Step 1 - Impossible States</h3>
+            <p>
+              The problem is our type is too loose. Nothing prevents creating
+              impossible states - like having both error and data during
+              loading. This "bag of optionals" doesn't encode the relationship
+              between status and its data.
+            </p>
+          </div>
+          <div>
+            <h3 className="font-bold text-lg">Step 2 - Focus on the Type</h3>
+            <p>
+              Let's focus on just the type definition. How can we fix this "bag
+              of optionals" problem?
+            </p>
+          </div>
+          <div>
+            <h3 className="font-bold text-lg">Step 3 - The Solution</h3>
+            <p>
+              The fix: a discriminated union. We split into separate types, each
+              with only relevant properties. The status literal is the
+              discriminant - it uniquely identifies each variant.
+            </p>
+          </div>
+          <div>
+            <h3 className="font-bold text-lg">Step 4 - Type Safety</h3>
+            <p>
+              Now TypeScript catches invalid states at compile time. The invalid
+              object with 'loading' status and an 'error' property fails to
+              compile. Only valid combinations are allowed.
+            </p>
+          </div>
+        </div>
       </SlideNotes>
       <SlideContent>
-        <div className="h-full flex flex-col items-center justify-center p-16">
-          <h1 className="text-5xl font-bold mb-8">Slide Test</h1>
-        </div>
+        <CodeBlock steps={codeSteps} />
       </SlideContent>
     </Slide>
   )
 }
 
-function StepsDemo() {
-  const { step } = useSteps(2)
-  return (
-    <div className="h-full flex flex-col items-center justify-center p-16">
-      <h1 className="text-5xl font-bold mb-8">Progressive Reveal</h1>
-      <p className="text-xl text-muted-foreground mb-6">
-        Press → to reveal steps (step: {step})
-      </p>
-      <div className="flex flex-col gap-4 items-center">
-        <Step visibleAt={1}>
-          <Badge variant="secondary" className="text-lg px-4 py-2">
-            Step 1: First item appears
-          </Badge>
-        </Step>
-        <Step visibleAt={2}>
-          <Badge className="text-lg px-4 py-2">
-            Step 2: Second item appears
-          </Badge>
-        </Step>
-      </div>
-    </div>
-  )
-}
+export const slides = (
+  <>
+    <DiscriminatedUnionsSlide />
+  </>
+)
 
 export default function Deck() {
-  return (
-    <SlideViewer>
-      <SlideTest />
-
-      <Slide>
-        <SlideNotes>
-          <h1>Welcome slide</h1>
-          <ul>
-            <li>Introduce yourself</li>
-            <li>Set the agenda</li>
-            <li>Press 'n' to toggle notes</li>
-          </ul>
-        </SlideNotes>
-        <SlideContent>
-          <div className="h-full flex flex-col items-center justify-center p-16">
-            <h1 className="text-7xl font-bold mb-8">Welcome</h1>
-            <p className="text-2xl text-muted-foreground">
-              Use arrow keys to navigate
-            </p>
-            <Badge className="mt-4">Getting Started</Badge>
-          </div>
-        </SlideContent>
-      </Slide>
-
-      <Slide>
-        <SlideContent>
-          <div className="h-full flex flex-col items-center justify-center p-16">
-            <h1 className="text-5xl font-bold mb-8">Slide Two</h1>
-            <p className="text-xl text-muted-foreground max-w-2xl text-center">
-              Define your slides directly in code. Each slide can contain any
-              React content.
-            </p>
-            <div className="flex gap-2 mt-6">
-              <Button variant="outline">Learn More</Button>
-              <Button>Get Started</Button>
-            </div>
-          </div>
-        </SlideContent>
-      </Slide>
-
-      <Slide>
-        <SlideNotes>
-          <h2>Component showcase</h2>
-          <p>Highlight the key technologies:</p>
-          <ul>
-            <li>React for UI</li>
-            <li>TypeScript for type safety</li>
-            <li>Tailwind for styling</li>
-          </ul>
-        </SlideNotes>
-        <SlideContent>
-          <div className="h-full flex flex-col items-center justify-center p-16">
-            <h1 className="text-5xl font-bold mb-8">Components</h1>
-            <p className="text-xl text-muted-foreground mb-6">
-              Use shadcn/ui components in slides
-            </p>
-            <div className="flex gap-2">
-              <Badge>React</Badge>
-              <Badge variant="secondary">TypeScript</Badge>
-              <Badge variant="outline">Tailwind</Badge>
-            </div>
-          </div>
-        </SlideContent>
-      </Slide>
-
-      <Slide>
-        <SlideContent>
-          <div className="h-full grid grid-cols-2 gap-8 p-16">
-            <div className="flex flex-col justify-center">
-              <h2 className="text-4xl font-bold mb-4">Flexible Layouts</h2>
-              <p className="text-lg text-muted-foreground">
-                Use any React/Tailwind layout
-              </p>
-              <Separator className="my-4" />
-              <p className="text-sm text-muted-foreground">
-                Combine components freely
-              </p>
-            </div>
-            <Card className="flex flex-col justify-center">
-              <CardHeader>
-                <CardTitle>Nested Cards</CardTitle>
-                <CardDescription>Cards work inside slides</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <span className="text-4xl">🎨</span>
-              </CardContent>
-            </Card>
-          </div>
-        </SlideContent>
-      </Slide>
-
-      <Slide>
-        <SlideNotes>
-          <h2>Steps Demo</h2>
-          <p>Press → to reveal each step progressively.</p>
-          <p>Steps are great for:</p>
-          <ul>
-            <li>Building up complex ideas</li>
-            <li>Animations and reveals</li>
-            <li>Controlling presentation pace</li>
-          </ul>
-        </SlideNotes>
-        <SlideContent>
-          <StepsDemo />
-        </SlideContent>
-      </Slide>
-
-      <Slide>
-        <SlideContent>
-          <div className="h-full flex flex-col items-center justify-center p-16">
-            <h1 className="text-5xl font-bold mb-8">The End</h1>
-            <p className="text-xl text-muted-foreground mb-6">
-              Press ↑ to go back
-            </p>
-            <Button variant="outline">↑</Button>
-          </div>
-        </SlideContent>
-      </Slide>
-    </SlideViewer>
-  )
+  return <SlideViewer>{slides}</SlideViewer>
 }

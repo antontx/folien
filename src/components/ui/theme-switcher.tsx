@@ -26,6 +26,16 @@ export function ThemeSwitcher() {
     setTheme(initial)
     applyTheme(initial)
     setMounted(true)
+
+    const onStorage = (e: StorageEvent) => {
+      if (e.key !== 'theme') return
+      const next = (e.newValue as Theme | null) || getSystemTheme()
+      setTheme(next)
+      applyTheme(next)
+    }
+
+    window.addEventListener('storage', onStorage)
+    return () => window.removeEventListener('storage', onStorage)
   }, [])
 
   const toggle = useCallback(() => {
