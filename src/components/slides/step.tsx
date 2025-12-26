@@ -1,5 +1,5 @@
-import * as React from "react"
-import { cn } from "@/lib/utils"
+import * as React from 'react'
+import { cn } from '@/lib/utils'
 
 interface StepContextValue {
   step: number
@@ -18,17 +18,14 @@ export const StepContext = React.createContext<StepContextValue>({
 })
 
 export function useSteps(totalSteps: number) {
-  const ctx = React.useContext(StepContext)
+  const { step, goNext, goPrev, setTotalSteps } = React.useContext(StepContext)
 
-  React.useEffect(() => {
-    ctx.setTotalSteps(totalSteps)
-  }, [totalSteps, ctx.setTotalSteps])
+  // Use layout effect to ensure totalSteps is set before paint
+  React.useLayoutEffect(() => {
+    setTotalSteps(totalSteps)
+  }, [totalSteps, setTotalSteps])
 
-  return {
-    step: ctx.step,
-    goNext: ctx.goNext,
-    goPrev: ctx.goPrev,
-  }
+  return { step, goNext, goPrev }
 }
 
 /** @deprecated Use useSteps instead */
@@ -50,9 +47,9 @@ export function Step({ children, visibleAt, className }: StepProps) {
   return (
     <div
       className={cn(
-        "transition-opacity duration-300",
-        isVisible ? "opacity-100" : "opacity-0",
-        className
+        'transition-opacity duration-300',
+        isVisible ? 'opacity-100' : 'opacity-0',
+        className,
       )}
     >
       {children}
