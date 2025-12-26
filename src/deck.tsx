@@ -1,12 +1,13 @@
+import type {CodeStep} from '@/components/slides/code-block';
 import { SlideViewer } from '@/components/slides/slide-viewer'
 import { Slide, SlideContent, SlideNotes } from '@/components/slides/slide'
-import { CodeBlock, type CodeStep } from '@/components/slides/code-block'
+import { CodeBlock  } from '@/components/slides/code-block'
 
 // Code steps designed for smooth token animation:
 // - Keep structure similar across steps where possible
 // - type State is always at top
 // - Function/usage comes after
-const codeSteps: CodeStep[] = [
+const codeSteps: Array<CodeStep> = [
   // Step 0: The problem - bag of optionals
   {
     code: `type State = {
