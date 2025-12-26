@@ -7,6 +7,7 @@ import {
 } from '@/hooks/use-presenter-channel'
 import { extractSlides } from '@/components/slides/slides-data'
 import { slides } from '@/deck'
+import type { AspectRatio } from '@/hooks/use-aspect-ratio'
 
 export const Route = createFileRoute('/presenter')({
   component: PresenterView,
@@ -18,23 +19,26 @@ function PresenterView() {
   const [totalSteps, setTotalSteps] = useState(0)
   const [showBorder, setShowBorder] = useState(true)
   const [isFullscreen, setIsFullscreen] = useState(false)
+  const [aspectRatio, setAspectRatio] = useState<AspectRatio>('16:9')
   const [isConnected, setIsConnected] = useState(false)
 
   // Extract slides from shared slides fragment
   const extractedSlides = useMemo(() => extractSlides(slides), [])
 
-  const handleMessage = useCallback((msg: PresenterMessage) => {
-    if (msg.type === 'state') {
-      setCurrentIndex(msg.index)
-      setCurrentStep(msg.step)
-      setTotalSteps(msg.totalSteps)
-      setShowBorder(msg.showBorder)
-      setIsFullscreen(msg.isFullscreen)
-      setIsConnected(true)
-    } else if (msg.type === 'pong') {
-      setIsConnected(true)
-    }
-  }, [extractedSlides.length])
+  const handleMessage = useCallback(
+    (msg: PresenterMessage) => {
+      if (msg.type === 'state') {
+        setCurrentIndex(msg.index)
+        setCurrentStep(msg.step)
+        setTotalSteps(msg.totalSteps)
+        setShowBorder(msg.showBorder)
+        setIsFullscreen(msg.isFullscreen)
+        setAspectRatio(msg.aspectRatio)
+        setIsConnected(true)
+      }
+    },
+    [extractedSlides.length],
+  )
 
   const { send } = usePresenterChannel(handleMessage)
 
@@ -95,6 +99,13 @@ function PresenterView() {
     send({ type: 'control', action: 'border', value: !showBorder })
   }, [send, showBorder])
 
+  const handleAspectRatioChange = useCallback(
+    (ratio: AspectRatio) => {
+      send({ type: 'control', action: 'aspectRatio', value: ratio })
+    },
+    [send],
+  )
+
   const handlePopIn = useCallback(() => {
     send({ type: 'disconnected' })
     window.close()
@@ -123,10 +134,12 @@ function PresenterView() {
         notes={slide?.notes}
         showBorder={showBorder}
         isFullscreen={isFullscreen}
+        aspectRatio={aspectRatio}
         onNextStep={handleNextStep}
         onPrevStep={handlePrevStep}
         onToggleFullscreen={handleToggleFullscreen}
         onToggleBorder={handleToggleBorder}
+        onAspectRatioChange={handleAspectRatioChange}
         isPoppedOut={true}
         onPopIn={handlePopIn}
         layout="standalone"

@@ -2,6 +2,14 @@ import { Button } from '@/components/ui/button'
 import { ButtonGroup } from '@/components/ui/button-group'
 import { ThemeSwitcher } from '@/components/ui/theme-switcher'
 import { Separator } from '@/components/ui/separator'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { ASPECT_RATIOS, type AspectRatio } from '@/hooks/use-aspect-ratio'
 
 export interface PresenterPanelProps {
   // State
@@ -12,12 +20,14 @@ export interface PresenterPanelProps {
   notes: React.ReactNode
   showBorder: boolean
   isFullscreen: boolean
+  aspectRatio: AspectRatio
 
   // Callbacks
   onNextStep: () => void
   onPrevStep: () => void
   onToggleFullscreen: () => void
   onToggleBorder: () => void
+  onAspectRatioChange: (ratio: AspectRatio) => void
 
   // Pop-out specific
   isPoppedOut?: boolean
@@ -35,10 +45,12 @@ export function PresenterPanel({
   totalSteps,
   notes,
   showBorder,
+  aspectRatio,
   onNextStep,
   onPrevStep,
   onToggleFullscreen,
   onToggleBorder,
+  onAspectRatioChange,
   isPoppedOut = false,
   onPopOut,
   onPopIn,
@@ -70,6 +82,21 @@ export function PresenterPanel({
             ▢
           </Button>
         </ButtonGroup>
+        <Select
+          value={aspectRatio}
+          onValueChange={(v) => v && onAspectRatioChange(v)}
+        >
+          <SelectTrigger size="sm" className="font-mono text-xs">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {ASPECT_RATIOS.map((ratio) => (
+              <SelectItem key={ratio} value={ratio}>
+                {ratio}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         <ThemeSwitcher />
         <div className="flex-1" />
         {!isPoppedOut && onPopOut && (

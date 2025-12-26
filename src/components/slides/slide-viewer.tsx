@@ -14,11 +14,23 @@ import {
   SidebarTrigger,
   useSidebar,
 } from '@/components/ui/sidebar'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { ThemeSwitcher } from '@/components/ui/theme-switcher'
 import {
   usePresenterChannel,
   type PresenterMessage,
 } from '@/hooks/use-presenter-channel'
+import {
+  AspectRatioContext,
+  ASPECT_RATIOS,
+  type AspectRatio,
+} from '@/hooks/use-aspect-ratio'
 
 interface SlideViewerProps {
   children: React.ReactNode
@@ -44,6 +56,7 @@ function SlideViewerInner({ children }: SlideViewerProps) {
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [showBorder, setShowBorder] = useState(true)
   const [isPoppedOut, setIsPoppedOut] = useState(false)
+  const [aspectRatio, setAspectRatio] = useState<AspectRatio>('16:9')
 
   const slide = slides[currentIndex]
   const popupRef = useRef<Window | null>(null)
@@ -100,6 +113,8 @@ function SlideViewerInner({ children }: SlideViewerProps) {
           }
         } else if (msg.action === 'border') {
           setShowBorder(msg.value)
+        } else if (msg.action === 'aspectRatio') {
+          setAspectRatio(msg.value)
         }
       } else if (msg.type === 'connected') {
         setIsPoppedOut(true)
@@ -123,6 +138,7 @@ function SlideViewerInner({ children }: SlideViewerProps) {
         totalSteps,
         showBorder,
         isFullscreen,
+        aspectRatio,
       })
     }
   }, [
@@ -132,6 +148,7 @@ function SlideViewerInner({ children }: SlideViewerProps) {
     totalSteps,
     showBorder,
     isFullscreen,
+    aspectRatio,
     send,
   ])
 
@@ -266,25 +283,35 @@ function SlideViewerInner({ children }: SlideViewerProps) {
       <main className="flex-1 flex flex-col p-4 overflow-hidden">
         <div ref={slideRef} className="flex-1 flex items-center justify-center">
           <Card
-            className={`${
+            className={`bg-background ${
               isFullscreen
                 ? 'w-screen h-screen max-w-none rounded-none'
-                : 'w-[1400px] max-w-full aspect-video rounded-xl'
+                : aspectRatio === '16:9'
+                  ? 'w-[1400px] max-w-full aspect-video rounded-xl'
+                  : 'h-[80vh] max-h-full aspect-[9/16] rounded-xl'
             } ${showBorder ? '' : 'ring-0'}`}
           >
-            <StepContext.Provider
+            <AspectRatioContext.Provider
               value={{
-                step: currentStep,
-                totalSteps,
-                goNext: goNextStep,
-                goPrev: goPrevStep,
-                setTotalSteps,
+                aspectRatio,
+                setAspectRatio,
+                isVertical: aspectRatio === '9:16',
               }}
             >
-              <div className="flex-1 h-full w-full overflow-hidden">
-                {slide.content}
-              </div>
-            </StepContext.Provider>
+              <StepContext.Provider
+                value={{
+                  step: currentStep,
+                  totalSteps,
+                  goNext: goNextStep,
+                  goPrev: goPrevStep,
+                  setTotalSteps,
+                }}
+              >
+                <div className="flex-1 h-full w-full overflow-hidden">
+                  {slide.content}
+                </div>
+              </StepContext.Provider>
+            </AspectRatioContext.Provider>
           </Card>
         </div>
       </main>
@@ -312,6 +339,23 @@ function SlideViewerInner({ children }: SlideViewerProps) {
                 ▢
               </Button>
             </ButtonGroup>
+            {!isCollapsed && (
+              <Select
+                value={aspectRatio}
+                onValueChange={(v) => v && setAspectRatio(v)}
+              >
+                <SelectTrigger size="sm" className="font-mono text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {ASPECT_RATIOS.map((ratio) => (
+                    <SelectItem key={ratio} value={ratio}>
+                      {ratio}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
             <ThemeSwitcher />
             {!isCollapsed && (
               <Button

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import type { AspectRatio } from './use-aspect-ratio'
 
 export type PresenterMessage =
   | {
@@ -8,6 +9,7 @@ export type PresenterMessage =
       totalSteps: number
       showBorder: boolean
       isFullscreen: boolean
+      aspectRatio: AspectRatio
     }
   | {
       type: 'navigate'
@@ -15,6 +17,7 @@ export type PresenterMessage =
       index?: number
     }
   | { type: 'control'; action: 'fullscreen' | 'border'; value: boolean }
+  | { type: 'control'; action: 'aspectRatio'; value: AspectRatio }
   | { type: 'connected' }
   | { type: 'disconnected' }
   | { type: 'ping' }
